@@ -25,6 +25,7 @@ export default function ClusterView({
   onMoveCluster,
   onMarkDelivered,
   onOpenFailModal,
+  onOpenVietQR,
   onUndoStatus,
   onEditOrder,
   onDeleteOrder
@@ -236,6 +237,7 @@ export default function ClusterView({
                     order={order}
                     onMarkDelivered={onMarkDelivered}
                     onOpenFailModal={onOpenFailModal}
+                    onOpenVietQR={onOpenVietQR}
                     onUndoStatus={onUndoStatus}
                     onEditOrder={onEditOrder}
                     onDeleteOrder={onDeleteOrder}

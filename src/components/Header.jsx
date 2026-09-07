@@ -39,6 +39,15 @@ export default function Header({
     .filter((o) => o.status === 'delivered')
     .reduce((sum, o) => sum + (Number(o.codAmount) || 0), 0);
 
+  // Phân tách Tiền mặt vs Chuyển khoản
+  const cashCOD = orders
+    .filter((o) => o.status === 'delivered' && (o.paymentMethod === 'cash' || !o.paymentMethod))
+    .reduce((sum, o) => sum + (Number(o.codAmount) || 0), 0);
+
+  const transferCOD = orders
+    .filter((o) => o.status === 'delivered' && o.paymentMethod === 'transfer')
+    .reduce((sum, o) => sum + (Number(o.codAmount) || 0), 0);
+
   return (
     <header className="sticky top-0 z-30 bg-slate-900/95 backdrop-blur-md border-b border-slate-800 shadow-xl select-none pt-[env(safe-area-inset-top,0px)]">
       {/* Thanh định danh & nút chức năng */}
@@ -144,8 +153,9 @@ export default function Header({
             <div className="text-lg font-black text-sky-400 tracking-tight leading-none truncate">
               {formatVND(totalDeliveredCOD)}
             </div>
-            <div className="text-[10px] text-slate-500 mt-1 font-medium truncate">
-              {failedCount > 0 ? `Tồn: ${failedCount} đơn` : 'Đã thu thực tế'}
+            <div className="text-[9.5px] text-slate-400 mt-1 font-medium flex items-center justify-between gap-1 truncate">
+              <span title="Tiền mặt">💵 {formatVND(cashCOD)}</span>
+              <span title="Chuyển khoản">📲 {formatVND(transferCOD)}</span>
             </div>
           </div>
         </div>

@@ -46,6 +46,13 @@ export default function DailyReportModal({
 
   // Tính tiền COD các đơn đã giao
   const totalDeliveredCOD = deliveredOrders.reduce((sum, o) => sum + (Number(o.codAmount) || 0), 0);
+  const cashCOD = deliveredOrders
+    .filter((o) => o.paymentMethod === 'cash' || !o.paymentMethod)
+    .reduce((sum, o) => sum + (Number(o.codAmount) || 0), 0);
+  const transferCOD = deliveredOrders
+    .filter((o) => o.paymentMethod === 'transfer')
+    .reduce((sum, o) => sum + (Number(o.codAmount) || 0), 0);
+
   const totalShipperEarnings = deliveredCount * shippingWage;
 
   const reportText = generateZaloReport({
@@ -98,7 +105,7 @@ export default function DailyReportModal({
             <div className="p-3.5 bg-gradient-to-br from-sky-950/60 to-slate-950 border border-sky-500/30 rounded-2xl">
               <div className="flex items-center gap-1.5 text-xs text-sky-400 font-bold mb-1">
                 <Wallet className="w-4 h-4" />
-                <span>Tiền COD Nộp Bưu Cục</span>
+                <span>Tổng COD Nộp Bưu Cục</span>
               </div>
               <div className="text-xl sm:text-2xl font-black text-white tracking-tight">
                 {formatVND(totalDeliveredCOD)}
@@ -119,6 +126,38 @@ export default function DailyReportModal({
               </div>
               <div className="text-[10px] text-slate-400 mt-1">
                 {deliveredCount} đơn x {formatVND(shippingWage)}/đơn
+              </div>
+            </div>
+          </div>
+
+          {/* Bảng phân tách Tiền Mặt vs Chuyển Khoản & Đối soát két */}
+          <div className="bg-slate-950/80 p-3.5 rounded-2xl border border-slate-800 space-y-2.5">
+            <div className="flex items-center justify-between text-xs font-bold text-slate-300">
+              <span className="flex items-center gap-1.5 text-emerald-400">
+                <Wallet className="w-4 h-4" />
+                <span>Két Tiền & Đối Soát Nộp Thủ Quỹ Bưu Cục:</span>
+              </span>
+            </div>
+            
+            <div className="grid grid-cols-2 gap-2 text-xs">
+              <div className="p-2.5 rounded-xl bg-slate-900 border border-slate-800 space-y-1">
+                <div className="text-[11px] text-slate-400 font-medium">💵 Tiền Mặt thu thực tế:</div>
+                <div className="text-base font-black text-emerald-400 font-mono">
+                  {formatVND(cashCOD)}
+                </div>
+                <div className="text-[10px] text-slate-500 font-medium">
+                  Móc túi nộp thủ quỹ bưu cục
+                </div>
+              </div>
+
+              <div className="p-2.5 rounded-xl bg-slate-900 border border-slate-800 space-y-1">
+                <div className="text-[11px] text-slate-400 font-medium">📲 Khách Chuyển Khoản:</div>
+                <div className="text-base font-black text-sky-400 font-mono">
+                  {formatVND(transferCOD)}
+                </div>
+                <div className="text-[10px] text-slate-500 font-medium">
+                  Đã vào tài khoản cá nhân
+                </div>
               </div>
             </div>
           </div>

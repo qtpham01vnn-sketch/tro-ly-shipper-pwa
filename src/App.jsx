@@ -26,6 +26,7 @@ import DailyReportModal from './components/DailyReportModal';
 import SettingsModal from './components/SettingsModal';
 import AddOrderModal from './components/AddOrderModal';
 import PWAInstallGuideModal from './components/PWAInstallGuideModal';
+import VietQRModal from './components/VietQRModal';
 
 import { INITIAL_SAMPLE_ORDERS } from './data/sampleOrders';
 import { saveDailyLog } from './services/historyService';
@@ -164,6 +165,7 @@ export default function App() {
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [isAddOrderOpen, setIsAddOrderOpen] = useState(false);
   const [isInstallGuideOpen, setIsInstallGuideOpen] = useState(false);
+  const [vietQROrder, setVietQROrder] = useState(null);
   const [editingOrder, setEditingOrder] = useState(null);
   const [failModalOrder, setFailModalOrder] = useState(null);
 
@@ -173,11 +175,11 @@ export default function App() {
     }
   };
 
-  // Cập nhật trạng thái "Đã giao thành công"
-  const handleMarkDelivered = (orderId) => {
+  // Cập nhật trạng thái "Đã giao thành công" (Tiền mặt hoặc Chuyển khoản)
+  const handleMarkDelivered = (orderId, paymentMethod = 'cash') => {
     triggerHaptic();
     setOrders((prev) =>
-      prev.map((o) => (o.id === orderId ? { ...o, status: 'delivered', failReason: '' } : o))
+      prev.map((o) => (o.id === orderId ? { ...o, status: 'delivered', paymentMethod: paymentMethod || 'cash', failReason: '' } : o))
     );
 
     const remainingPending = orders.filter((o) => o.id !== orderId && o.status === 'pending').length;
@@ -532,6 +534,7 @@ export default function App() {
                 }}
                 onMoveCluster={handleMoveCluster}
                 onMarkDelivered={handleMarkDelivered}
+                onOpenVietQR={(order) => setVietQROrder(order)}
                 onOpenFailModal={(order) => setFailModalOrder(order)}
                 onUndoStatus={handleUndoStatus}
                 onEditOrder={(order) => {
@@ -629,6 +632,22 @@ export default function App() {
       <PWAInstallGuideModal
         isOpen={isInstallGuideOpen}
         onClose={() => setIsInstallGuideOpen(false)}
+      />
+
+      {/* Modal Tạo VietQR Động Thu Tiền Chuyển Khoản */}
+      <VietQRModal
+        isOpen={Boolean(vietQROrder)}
+        onClose={() => setVietQROrder(null)}
+        order={vietQROrder}
+        bankConfig={{
+          bankId: config.bankId || 'MB',
+          accountNo: config.accountNo || '',
+          accountName: config.accountName || config.shipperName || 'THIEN LONG'
+        }}
+        onConfirmTransferDelivered={(orderId) => {
+          handleMarkDelivered(orderId, 'transfer');
+          setVietQROrder(null);
+        }}
       />
     </div>
   );

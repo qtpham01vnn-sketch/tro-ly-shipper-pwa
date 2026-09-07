@@ -14,6 +14,7 @@ import {
 } from 'lucide-react';
 
 import { getSupabaseConfig, saveSupabaseConfig } from '../services/supabaseService';
+import { VIETNAM_BANKS } from './VietQRModal';
 
 export default function SettingsModal({
   isOpen,
@@ -28,9 +29,14 @@ export default function SettingsModal({
   const [apiKey, setApiKey] = useState(config.apiKey || '');
   const [shippingWage, setShippingWage] = useState(config.shippingWage || 4500);
   const [baseSalary, setBaseSalary] = useState(config.baseSalary || 5000000);
-  const [shipperName, setShipperName] = useState(config.shipperName || 'Shipper Pro');
+  const [shipperName, setShipperName] = useState(config.shipperName || 'Thiên Long');
   const [carrier, setCarrier] = useState(config.carrier || 'J&T Express');
   const [selectedModel, setSelectedModel] = useState(config.selectedModel || 'gemini-1.5-flash');
+
+  // Cấu hình tài khoản ngân hàng nhận VietQR
+  const [bankId, setBankId] = useState(config.bankId || 'MB');
+  const [accountNo, setAccountNo] = useState(config.accountNo || '');
+  const [accountName, setAccountName] = useState(config.accountName || config.shipperName || 'THIEN LONG');
 
   const [supabaseUrl, setSupabaseUrl] = useState(() => getSupabaseConfig().supabaseUrl || '');
   const [supabaseAnonKey, setSupabaseAnonKey] = useState(() => getSupabaseConfig().supabaseAnonKey || '');
@@ -43,9 +49,12 @@ export default function SettingsModal({
       apiKey: apiKey.trim(),
       shippingWage: Number(shippingWage) || 4500,
       baseSalary: Number(baseSalary) || 5000000,
-      shipperName: shipperName.trim() || 'Shipper Pro',
+      shipperName: shipperName.trim() || 'Thiên Long',
       carrier: carrier.trim() || 'Giao Hàng',
-      selectedModel: selectedModel || 'gemini-1.5-flash'
+      selectedModel: selectedModel || 'gemini-1.5-flash',
+      bankId: bankId || 'MB',
+      accountNo: accountNo.trim(),
+      accountName: accountName.trim() || shipperName.trim()
     });
     saveSupabaseConfig({
       supabaseUrl: supabaseUrl.trim(),
@@ -243,6 +252,64 @@ export default function SettingsModal({
                   <option key={c} value={c}>{c}</option>
                 ))}
               </select>
+            </div>
+          </div>
+
+          {/* Cấu hình Tài khoản Ngân hàng nhận VietQR Động */}
+          <div className="bg-slate-950/70 p-3.5 rounded-2xl border border-slate-800 space-y-2.5">
+            <div className="flex items-center justify-between">
+              <label className="text-xs font-extrabold text-emerald-400 flex items-center gap-1.5">
+                <span className="p-1 rounded bg-emerald-500/20 text-emerald-400 font-black text-[10px]">QR</span>
+                <span>Tài Khoản Nhận Chuyển Khoản (VietQR Động)</span>
+              </label>
+            </div>
+            <p className="text-[11px] text-slate-400">
+              Khi khách quét mã QR trên app, tiền sẽ tự động chuyển đúng số tiền COD vào tài khoản này.
+            </p>
+
+            <div className="space-y-2">
+              <div>
+                <label className="text-[11px] font-bold text-slate-300 block mb-1">
+                  Chọn Ngân Hàng:
+                </label>
+                <select
+                  value={bankId}
+                  onChange={(e) => setBankId(e.target.value)}
+                  className="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-xs font-bold text-white focus:outline-none focus:border-emerald-500"
+                >
+                  {VIETNAM_BANKS.map((b) => (
+                    <option key={b.id} value={b.id}>{b.name}</option>
+                  ))}
+                </select>
+              </div>
+
+              <div className="grid grid-cols-2 gap-2">
+                <div>
+                  <label className="text-[11px] font-bold text-slate-300 block mb-1">
+                    Số Tài Khoản:
+                  </label>
+                  <input
+                    type="text"
+                    value={accountNo}
+                    onChange={(e) => setAccountNo(e.target.value)}
+                    placeholder="VD: 0987654321..."
+                    className="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-xs font-mono font-bold text-white focus:outline-none focus:border-emerald-500"
+                  />
+                </div>
+
+                <div>
+                  <label className="text-[11px] font-bold text-slate-300 block mb-1">
+                    Tên Chủ Tài Khoản:
+                  </label>
+                  <input
+                    type="text"
+                    value={accountName}
+                    onChange={(e) => setAccountName(e.target.value)}
+                    placeholder="VD: NGUYEN VAN A"
+                    className="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-xs font-bold uppercase text-white focus:outline-none focus:border-emerald-500"
+                  />
+                </div>
+              </div>
             </div>
           </div>
 
