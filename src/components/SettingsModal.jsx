@@ -17,7 +17,9 @@ export default function SettingsModal({
   isOpen,
   onClose,
   config,
+  orders = [],
   onSaveConfig,
+  onImportOrders = () => {},
   onLoadSampleData,
   onClearAllData
 }) {
@@ -232,6 +234,64 @@ export default function SettingsModal({
                   <option key={c} value={c}>{c}</option>
                 ))}
               </select>
+            </div>
+          </div>
+
+          {/* Quản lý sao lưu dữ liệu */}
+          <div className="pt-2 border-t border-slate-800 space-y-2">
+            <div className="text-xs font-bold text-slate-400">Sao lưu & Đồng bộ Thiết Bị:</div>
+            <div className="grid grid-cols-2 gap-2">
+              <button
+                type="button"
+                onClick={() => {
+                  const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify({
+                    orders: orders || [],
+                    config: { apiKey, shippingWage, baseSalary, shipperName, carrier, selectedModel },
+                    exportedAt: new Date().toISOString()
+                  }, null, 2));
+                  const downloadAnchor = document.createElement('a');
+                  downloadAnchor.setAttribute("href", dataStr);
+                  downloadAnchor.setAttribute("download", `shipper_backup_${new Date().toISOString().slice(0, 10)}.json`);
+                  document.body.appendChild(downloadAnchor);
+                  downloadAnchor.click();
+                  downloadAnchor.remove();
+                }}
+                className="py-2 px-3 rounded-xl bg-slate-800 hover:bg-slate-700 text-emerald-400 border border-slate-700 font-bold text-xs flex items-center justify-center gap-1.5 transition"
+              >
+                <span>📥 Xuất Sao Lưu JSON</span>
+              </button>
+
+              <label className="py-2 px-3 rounded-xl bg-slate-800 hover:bg-slate-700 text-sky-400 border border-slate-700 font-bold text-xs flex items-center justify-center gap-1.5 transition cursor-pointer">
+                <span>📤 Nhập Sao Lưu</span>
+                <input 
+                  type="file" 
+                  accept=".json"
+                  className="hidden"
+                  onChange={(e) => {
+                    const file = e.target.files?.[0];
+                    if (!file) return;
+                    const reader = new FileReader();
+                    reader.onload = (event) => {
+                      try {
+                        const parsed = JSON.parse(event.target.result);
+                        if (parsed.orders && Array.isArray(parsed.orders)) {
+                          onImportOrders(parsed.orders);
+                          if (parsed.config) {
+                            onSaveConfig(parsed.config);
+                          }
+                          alert(`Khôi phục thành công ${parsed.orders.length} đơn hàng!`);
+                          onClose();
+                        } else {
+                          alert('File sao lưu không đúng định dạng.');
+                        }
+                      } catch (err) {
+                        alert('Lỗi đọc file sao lưu: ' + err.message);
+                      }
+                    };
+                    reader.readAsText(file);
+                  }}
+                />
+              </label>
             </div>
           </div>
 

@@ -570,8 +570,10 @@ export default function App() {
         isOpen={isSettingsOpen}
         onClose={() => setIsSettingsOpen(false)}
         config={config}
+        orders={orders}
         onSaveConfig={(newConfig) => setConfig(newConfig)}
-        onLoadSampleData={() => {}}
+        onImportOrders={(imported) => setOrders(imported)}
+        onLoadSampleData={() => setOrders(INITIAL_SAMPLE_ORDERS)}
         onClearAllData={handleResetDay}
       />
 
