@@ -43,6 +43,7 @@ export default function BatchScannerModal({
   const [errorMessage, setErrorMessage] = useState('');
   const [testKeyStatus, setTestKeyStatus] = useState(null); // null | { ok: bool, message: string }
   const [isTestingKey, setIsTestingKey] = useState(false);
+  const [showPlainKey, setShowPlainKey] = useState(false);
 
   const fileInputRef = useRef(null);
   const cameraInputRef = useRef(null);
@@ -284,16 +285,26 @@ export default function BatchScannerModal({
                 </a>
               </div>
               <div className="flex items-center gap-2">
-                <input
-                  type="password"
-                  value={tempApiKey}
-                  onChange={(e) => {
-                    setTempApiKey(e.target.value);
-                    setTestKeyStatus(null);
-                  }}
-                  placeholder="Dán AIzaSy... vào đây"
-                  className="flex-1 bg-slate-900 border border-slate-700 rounded-xl px-3 py-1.5 text-xs text-white font-mono focus:outline-none focus:border-sky-500"
-                />
+                <div className="relative flex-1">
+                  <input
+                    type={showPlainKey ? 'text' : 'password'}
+                    value={tempApiKey}
+                    onChange={(e) => {
+                      setTempApiKey(e.target.value);
+                      setTestKeyStatus(null);
+                    }}
+                    placeholder="Dán AIzaSy... vào đây"
+                    className="w-full bg-slate-900 border border-slate-700 rounded-xl pl-3 pr-8 py-1.5 text-xs text-white font-mono focus:outline-none focus:border-sky-500"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowPlainKey(!showPlainKey)}
+                    className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-white"
+                    title={showPlainKey ? 'Ẩn Key' : 'Hiện Key để kiểm tra'}
+                  >
+                    <Eye className="w-3.5 h-3.5" />
+                  </button>
+                </div>
                 <button
                   type="button"
                   onClick={handleTestKey}
