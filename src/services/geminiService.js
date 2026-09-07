@@ -4,16 +4,14 @@
  */
 
 export const CANDIDATE_MODELS = [
-  'gemini-2.5-flash',
-  'gemini-1.5-flash-latest',
   'gemini-1.5-flash',
-  'gemini-2.0-flash-lite',
-  'gemini-1.5-pro',
-  'gemini-2.0-flash',
-  'gemini-pro'
+  'gemini-1.5-flash-latest',
+  'gemini-1.5-flash-8b',
+  'gemini-2.5-flash',
+  'gemini-1.5-pro'
 ];
 
-let workingModelCache = null;
+let workingModelCache = 'gemini-1.5-flash';
 
 /**
  * Kiểm tra nhanh API Key có hoạt động hay không (Ping Test)
@@ -250,8 +248,8 @@ Trả về duy nhất định dạng JSON chuẩn sau:
   };
 
   const modelsToTry = [];
-  if (workingModelCache) modelsToTry.push(workingModelCache);
-  if (userModel && !modelsToTry.includes(userModel)) modelsToTry.push(userModel);
+  if (workingModelCache && !modelsToTry.includes(workingModelCache)) modelsToTry.push(workingModelCache);
+  if (userModel && !modelsToTry.includes(userModel) && CANDIDATE_MODELS.includes(userModel)) modelsToTry.push(userModel);
   CANDIDATE_MODELS.forEach((m) => {
     if (!modelsToTry.includes(m)) modelsToTry.push(m);
   });
@@ -262,40 +260,50 @@ Trả về duy nhất định dạng JSON chuẩn sau:
   for (const model of modelsToTry) {
     const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${cleanKey}`;
     
-    const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 15000);
+    // Thử tối đa 2 lần cho 1 model nếu gặp 429 Quota
+    for (let attempt = 0; attempt < 2; attempt++) {
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 20000);
 
-    try {
-      const response = await fetch(apiUrl, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(requestBody),
-        signal: controller.signal
-      });
-      clearTimeout(timeoutId);
+      try {
+        const response = await fetch(apiUrl, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(requestBody),
+          signal: controller.signal
+        });
+        clearTimeout(timeoutId);
 
-      if (response.ok) {
-        resData = await response.json();
-        workingModelCache = model;
-        break;
-      } else {
-        const errJson = await response.json().catch(() => ({}));
-        const errMsg = errJson?.error?.message || `Lỗi ${response.status}`;
-        lastError = new Error(errMsg);
+        if (response.ok) {
+          resData = await response.json();
+          workingModelCache = model;
+          break;
+        } else {
+          const errJson = await response.json().catch(() => ({}));
+          const errMsg = errJson?.error?.message || `Lỗi ${response.status}`;
+          lastError = new Error(errMsg);
 
-        // Nếu là lỗi Rate Limit (429), chờ 2s rồi thử lại
-        if (response.status === 429) {
-          await new Promise((r) => setTimeout(r, 2000));
+          // Nếu là lỗi 429 (vượt hạn mức tạm thời), chờ 2.5s rồi thử lại
+          if (response.status === 429) {
+            await new Promise((r) => setTimeout(r, 2500));
+            continue;
+          } else {
+            // Lỗi 404 (model không hỗ trợ) -> thoát vòng lặp attempt để chuyển model khác
+            break;
+          }
         }
-      }
-    } catch (e) {
-      clearTimeout(timeoutId);
-      if (e.name === 'AbortError') {
-        lastError = new Error('Quá thời gian phản hồi (Timeout 15s). Đã bỏ qua ảnh này.');
-      } else {
-        lastError = e;
+      } catch (e) {
+        clearTimeout(timeoutId);
+        if (e.name === 'AbortError') {
+          lastError = new Error('Quá thời gian phản hồi (Timeout). Vui lòng thử lại.');
+        } else {
+          lastError = e;
+        }
+        break;
       }
     }
+
+    if (resData) break;
   }
 
   if (!resData) {

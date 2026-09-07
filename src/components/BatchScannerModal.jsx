@@ -103,79 +103,63 @@ export default function BatchScannerModal({
     const seenTracking = new Set();
     let completedCount = 0;
 
-    // Concurrency = 2 với delay 500ms giữa các chunk để luôn nằm trong quota 15 RPM
-    const BATCH_SIZE = 2;
-    for (let i = 0; i < selectedFiles.length; i += BATCH_SIZE) {
-      const chunk = selectedFiles.slice(i, i + BATCH_SIZE);
+    // Quét tuần tự từng ảnh với độ trễ 400ms để đảm bảo 100% không bị quá tải Quota Google AI
+    for (let fileIdx = 0; fileIdx < selectedFiles.length; fileIdx++) {
+      const file = selectedFiles[fileIdx];
+      const previewUrl = URL.createObjectURL(file);
 
-      const chunkPromises = chunk.map(async (file, chunkIndex) => {
-        const fileIdx = i + chunkIndex;
-        const previewUrl = URL.createObjectURL(file);
+      try {
+        const orderResults = await analyzeShippingLabel(
+          file, 
+          currentKey, 
+          defaultShippingFee, 
+          selectedModel
+        );
 
-        try {
-          const orderResults = await analyzeShippingLabel(
-            file, 
-            currentKey, 
-            defaultShippingFee, 
-            selectedModel
-          );
-          return { success: true, list: Array.isArray(orderResults) ? orderResults : [orderResults], previewUrl, fileName: file.name };
-        } catch (err) {
-          console.error(`Lỗi ảnh ${file.name}:`, err);
-          return {
-            success: false,
-            errorOrder: {
-              id: 'ord-err-' + Date.now() + '-' + fileIdx,
-              trackingCode: '',
-              customerName: '',
-              phone: '',
-              fullAddress: '',
-              streetOrArea: 'Chưa nhận diện',
-              codAmount: 0,
-              shippingFee: defaultShippingFee,
-              deliveryNote: '',
-              status: 'pending',
-              failReason: '',
-              callAttempts: 0,
-              carrier: '',
-              scanOk: false,
-              scanErrorReason: err.message || 'Ảnh mờ hoặc không đọc được',
-              previewUrl,
-              originalFileName: file.name
-            }
-          };
-        } finally {
-          completedCount++;
-          setProgress({ current: completedCount, total: selectedFiles.length });
-        }
-      });
-
-      const chunkResults = await Promise.all(chunkPromises);
-
-      chunkResults.forEach((res) => {
-        if (res.success && res.list) {
-          res.list.forEach((item) => {
-            const trackingKey = (item.trackingCode && item.trackingCode.length > 4) ? item.trackingCode : null;
-            if (trackingKey && seenTracking.has(trackingKey)) {
-              return;
-            }
-            if (trackingKey) {
-              seenTracking.add(trackingKey);
-            }
-            allExtractedOrders.push({
-              ...item,
-              previewUrl: res.previewUrl,
-              originalFileName: res.fileName
-            });
+        const list = Array.isArray(orderResults) ? orderResults : [orderResults];
+        list.forEach((item) => {
+          const trackingKey = (item.trackingCode && item.trackingCode.length > 4) ? item.trackingCode : null;
+          if (trackingKey && seenTracking.has(trackingKey)) {
+            return;
+          }
+          if (trackingKey) {
+            seenTracking.add(trackingKey);
+          }
+          allExtractedOrders.push({
+            ...item,
+            previewUrl,
+            originalFileName: file.name
           });
-        } else if (res.errorOrder) {
-          allExtractedOrders.push(res.errorOrder);
-        }
-      });
+        });
+      } catch (err) {
+        console.error(`Lỗi ảnh ${file.name}:`, err);
+        allExtractedOrders.push({
+          id: 'ord-err-' + Date.now() + '-' + fileIdx,
+          trackingCode: '',
+          customerName: '',
+          phone: '',
+          fullAddress: '',
+          streetOrArea: 'Chưa nhận diện',
+          codAmount: 0,
+          shippingFee: defaultShippingFee,
+          deliveryNote: '',
+          status: 'pending',
+          failReason: '',
+          callAttempts: 0,
+          carrier: '',
+          scanOk: false,
+          scanErrorReason: err.message || 'Ảnh mờ hoặc không đọc được',
+          previewUrl,
+          originalFileName: file.name
+        });
+      } finally {
+        completedCount++;
+        setProgress({ current: completedCount, total: selectedFiles.length });
+      }
 
-      // Nghỉ 500ms giữa các chunk nếu còn ảnh tiếp theo
-      if (i + BATCH_SIZE < selectedFiles.length) {
-        await new Promise((r) => setTimeout(r, 500));
+      // Giãn cách an toàn giữa các request
+      if (fileIdx < selectedFiles.length - 1) {
+        await new Promise((r) => setTimeout(r, 400));
       }
     }
 
