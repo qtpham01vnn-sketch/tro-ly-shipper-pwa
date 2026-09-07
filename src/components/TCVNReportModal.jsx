@@ -44,6 +44,13 @@ export default function TCVNReportModal({
 
   // Tính tài chính
   const totalDeliveredCOD = deliveredOrders.reduce((sum, o) => sum + (Number(o.codAmount) || 0), 0);
+  const cashDeliveredCOD = deliveredOrders
+    .filter((o) => (o.paymentMethod || 'cash') === 'cash')
+    .reduce((sum, o) => sum + (Number(o.codAmount) || 0), 0);
+  const transferDeliveredCOD = deliveredOrders
+    .filter((o) => o.paymentMethod === 'transfer')
+    .reduce((sum, o) => sum + (Number(o.codAmount) || 0), 0);
+
   const totalShipperWage = deliveredCount * shippingWage;
   const totalIncome = baseSalary + totalShipperWage;
 
@@ -170,12 +177,34 @@ export default function TCVNReportModal({
                   <tr>
                     <td className="border border-black p-1.5 text-center font-bold">1</td>
                     <td className="border border-black p-1.5">
-                      <strong>Tổng tiền thu hộ COD phải bàn nộp bưu cục</strong>
-                      <div className="text-[11px] text-gray-600 italic">Thực thu từ {deliveredCount} đơn giao thành công</div>
+                      <strong>Tổng tiền thu hộ COD phát sinh trong ca</strong>
+                      <div className="text-[11px] text-gray-600 italic">Tổng phát sinh từ {deliveredCount} đơn giao thành công</div>
                     </td>
                     <td className="border border-black p-1.5 text-center font-semibold">Theo thực tế</td>
                     <td className="border border-black p-1.5 text-right font-bold text-blue-700">
                       {formatVND(totalDeliveredCOD)}
+                    </td>
+                  </tr>
+                  <tr className="bg-amber-50/50">
+                    <td className="border border-black p-1.5 text-center text-gray-600">1.1</td>
+                    <td className="border border-black p-1.5 pl-4">
+                      <strong>• Tiền mặt thực tế bàn nộp thủ quỹ bưu cục (Két tiền)</strong>
+                      <div className="text-[11px] text-gray-600 italic">Số tiền mặt shipper trực tiếp bàn giao lại kho</div>
+                    </td>
+                    <td className="border border-black p-1.5 text-center font-bold text-amber-800">Tiền mặt</td>
+                    <td className="border border-black p-1.5 text-right font-black text-amber-900">
+                      {formatVND(cashDeliveredCOD)}
+                    </td>
+                  </tr>
+                  <tr className="bg-sky-50/50">
+                    <td className="border border-black p-1.5 text-center text-gray-600">1.2</td>
+                    <td className="border border-black p-1.5 pl-4">
+                      <strong>• Tiền khách đã chuyển khoản ngân hàng</strong>
+                      <div className="text-[11px] text-gray-600 italic">Đã vào tài khoản cá nhân/VietQR (đối soát trừ riêng)</div>
+                    </td>
+                    <td className="border border-black p-1.5 text-center font-bold text-sky-800">Chuyển khoản</td>
+                    <td className="border border-black p-1.5 text-right font-bold text-sky-900">
+                      {formatVND(transferDeliveredCOD)}
                     </td>
                   </tr>
                   <tr>

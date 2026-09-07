@@ -66,7 +66,7 @@ export default function OrderCard({
   return (
     <div className={`relative rounded-2xl border transition-all duration-200 overflow-hidden shadow-md ${
       isDelivered 
-        ? 'bg-slate-900/60 border-emerald-500/30 opacity-80' 
+        ? (paymentMethod === 'transfer' ? 'bg-slate-900/70 border-sky-500/40 opacity-85' : 'bg-slate-900/60 border-emerald-500/30 opacity-80')
         : isFailed
         ? 'bg-slate-900/80 border-rose-500/40'
         : isUrgent
@@ -94,16 +94,26 @@ export default function OrderCard({
         <div className="flex items-center gap-1.5">
           {hasCOD ? (
             <>
-              <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-black bg-emerald-500/20 text-emerald-400 border border-emerald-500/30">
+              <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-black border ${
+                isDelivered && paymentMethod === 'transfer'
+                  ? 'bg-sky-500/20 text-sky-300 border-sky-500/40'
+                  : 'bg-emerald-500/20 text-emerald-400 border-emerald-500/30'
+              }`}>
                 COD: {formatVND(order.codAmount)}
+                {isDelivered && (
+                  <span className="ml-1 text-[10px] opacity-90">
+                    ({paymentMethod === 'transfer' ? '📲 CK' : '💵 TM'})
+                  </span>
+                )}
               </span>
               {onOpenVietQR && !isDelivered && (
                 <button
                   onClick={() => onOpenVietQR(order)}
-                  className="p-1 rounded-lg bg-emerald-500/20 hover:bg-emerald-500/30 text-emerald-300 border border-emerald-500/40 transition active:scale-95"
-                  title="Mở mã VietQR chuyển khoản"
+                  className="inline-flex items-center gap-1 px-2 py-0.5 rounded-lg bg-gradient-to-r from-sky-600 to-indigo-600 hover:from-sky-500 hover:to-indigo-500 text-white font-extrabold text-[11px] shadow-sm active:scale-95 transition"
+                  title="Bấm để hiện mã VietQR cho khách quét"
                 >
-                  <QrCode className="w-4 h-4 text-emerald-400" />
+                  <QrCode className="w-3.5 h-3.5 text-sky-200" />
+                  <span>QR CK</span>
                 </button>
               )}
             </>
@@ -142,31 +152,31 @@ export default function OrderCard({
             </button>
             <button
               onClick={() => onDeleteOrder(order.id)}
-              className="p-1 text-slate-500 hover:text-rose-400 rounded hover:bg-slate-800"
-              title="Xóa đơn"
+              className="p-1 text-slate-400 hover:text-rose-400 rounded hover:bg-slate-800"
+              title="Xóa đơn hàng"
             >
               <Trash2 className="w-3.5 h-3.5" />
             </button>
           </div>
         </div>
 
-        {/* Địa chỉ giao hàng to rõ */}
-        <div className="flex items-start gap-2 bg-slate-950/60 p-2.5 rounded-xl border border-slate-800/80">
-          <MapPin className="w-4 h-4 text-rose-400 shrink-0 mt-0.5" />
-          <p className="text-xs font-semibold text-slate-200 leading-snug">
-            {order.fullAddress}
-          </p>
+        {/* Địa chỉ giao hàng */}
+        <div className="flex items-start gap-1.5 text-xs text-slate-300">
+          <MapPin className="w-3.5 h-3.5 text-slate-400 shrink-0 mt-0.5" />
+          <span className="line-clamp-2 leading-relaxed font-medium">
+            {order.fullAddress || 'Chưa có địa chỉ'}
+          </span>
         </div>
 
-        {/* Ghi chú hẹn giờ / Gấp (nếu có) */}
+        {/* Ghi chú giao hàng nếu có */}
         {order.deliveryNote && (
-          <div className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-bold ${
+          <div className={`text-xs px-2.5 py-1 rounded-lg flex items-center gap-1.5 font-medium ${
             isUrgent 
-              ? 'bg-amber-500/20 text-amber-300 border border-amber-500/40 urgent-glow' 
-              : 'bg-slate-800/60 text-slate-300 border border-slate-700'
+              ? 'bg-amber-500/15 text-amber-300 border border-amber-500/30' 
+              : 'bg-slate-800/80 text-slate-300 border border-slate-700/50'
           }`}>
-            <Clock className="w-3.5 h-3.5 text-amber-400 shrink-0" />
-            <span className="truncate">Ghi chú: {order.deliveryNote}</span>
+            <Clock className={`w-3.5 h-3.5 shrink-0 ${isUrgent ? 'text-amber-400' : 'text-slate-400'}`} />
+            <span>Ghi chú: {order.deliveryNote}</span>
           </div>
         )}
 
@@ -189,9 +199,13 @@ export default function OrderCard({
       {/* KHU VỰC NÚT THAO TÁC 1-CHẠM NGOÀI ĐƯỜNG (Field Delivery Quick Action Buttons) */}
       <div className="p-3 pt-0">
         {isDelivered ? (
-          <div className="flex items-center justify-between bg-emerald-950/40 border border-emerald-500/30 rounded-xl px-3 py-2.5">
-            <div className="flex items-center gap-2 text-emerald-400 text-xs font-bold">
-              <CheckCircle2 className="w-4 h-4 text-emerald-400" />
+          <div className={`flex items-center justify-between rounded-xl px-3 py-2.5 ${
+            paymentMethod === 'transfer'
+              ? 'bg-sky-950/60 border border-sky-500/40 text-sky-300'
+              : 'bg-emerald-950/40 border border-emerald-500/30 text-emerald-400'
+          }`}>
+            <div className="flex items-center gap-2 text-xs font-bold">
+              <CheckCircle2 className={`w-4 h-4 ${paymentMethod === 'transfer' ? 'text-sky-400' : 'text-emerald-400'}`} />
               <span>
                 Giao thành công • {hasCOD ? (paymentMethod === 'transfer' ? '📲 Khách Chuyển khoản' : '💵 Thu Tiền mặt') : '0đ'}
               </span>
@@ -200,7 +214,11 @@ export default function OrderCard({
               {hasCOD && (
                 <button
                   onClick={() => onMarkDelivered(order.id, paymentMethod === 'transfer' ? 'cash' : 'transfer')}
-                  className="text-[10px] text-sky-400 hover:text-sky-300 bg-sky-950/40 border border-sky-500/30 px-2 py-0.5 rounded font-bold transition"
+                  className={`text-[10px] px-2 py-0.5 rounded font-bold transition border ${
+                    paymentMethod === 'transfer'
+                      ? 'text-emerald-400 hover:text-emerald-300 bg-emerald-950/50 border-emerald-500/40'
+                      : 'text-sky-400 hover:text-sky-300 bg-sky-950/50 border-sky-500/40'
+                  }`}
                   title="Bấm để đổi hình thức thanh toán"
                 >
                   {paymentMethod === 'transfer' ? 'Đổi sang Tiền Mặt' : 'Đổi sang CK'}
