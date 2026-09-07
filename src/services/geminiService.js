@@ -3,6 +3,18 @@
  * Chuẩn hóa, tự động thử model, nén ảnh và kiểm tra API Key
  */
 
+export const CANDIDATE_MODELS = [
+  'gemini-2.5-flash',
+  'gemini-1.5-flash-latest',
+  'gemini-1.5-flash',
+  'gemini-2.0-flash-lite',
+  'gemini-1.5-pro',
+  'gemini-2.0-flash',
+  'gemini-pro'
+];
+
+let workingModelCache = null;
+
 /**
  * Kiểm tra nhanh API Key có hoạt động hay không (Ping Test)
  */
@@ -11,29 +23,42 @@ export async function testGeminiApiKey(apiKey) {
     return { ok: false, message: 'Chưa nhập API Key' };
   }
   const cleanKey = apiKey.replace(/[\r\n\t\s]/g, '');
-  const testUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${cleanKey}`;
   
-  try {
-    const res = await fetch(testUrl, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        contents: [{ parts: [{ text: 'Xin chào' }] }]
-      })
-    });
+  let lastErrMsg = '';
+  for (const model of CANDIDATE_MODELS) {
+    const testUrl = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${cleanKey}`;
+    try {
+      const res = await fetch(testUrl, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          contents: [{ parts: [{ text: 'Ping' }] }]
+        })
+      });
 
-    if (res.ok) {
-      return { ok: true, message: 'Kết nối Google Gemini AI thành công!' };
-    } else {
-      const err = await res.json().catch(() => ({}));
-      return { 
-        ok: false, 
-        message: err?.error?.message || `Lỗi phản hồi (${res.status})` 
-      };
+      if (res.ok) {
+        workingModelCache = model;
+        return { ok: true, message: `Kết nối thành công! Đang sử dụng model AI: ${model}`, model };
+      } else {
+        const err = await res.json().catch(() => ({}));
+        lastErrMsg = err?.error?.message || `Lỗi phản hồi (${res.status})`;
+        
+        // Nếu API key sai/hết hạn thì báo ngay
+        if (lastErrMsg.includes('API_KEY_INVALID') || lastErrMsg.includes('API key not valid')) {
+          return { ok: false, message: 'API Key không hợp lệ hoặc đã bị vô hiệu hóa trên Google Cloud.' };
+        }
+        
+        // Nếu lỗi do model không khả dụng/không tìm thấy, tự động thử model tiếp theo trong danh sách
+        if (res.status === 404 || lastErrMsg.includes('not found') || lastErrMsg.includes('no longer available') || lastErrMsg.includes('not supported')) {
+          continue;
+        }
+      }
+    } catch (e) {
+      lastErrMsg = e.message || 'Lỗi mạng khi kiểm tra API Key';
     }
-  } catch (e) {
-    return { ok: false, message: e.message || 'Lỗi mạng khi kiểm tra API Key' };
   }
+
+  return { ok: false, message: lastErrMsg || 'Không thể kết nối tới Google Gemini AI. Vui lòng kiểm tra lại Key.' };
 }
 
 /**
@@ -166,17 +191,6 @@ export function extractStreetOrArea(fullAddress) {
   const parts = fullAddress.split(',');
   return parts[0].trim() || fullAddress;
 }
-
-const CANDIDATE_MODELS = [
-  'gemini-2.0-flash',
-  'gemini-2.5-flash',
-  'gemini-1.5-flash-latest',
-  'gemini-1.5-flash',
-  'gemini-2.0-flash-lite',
-  'gemini-1.5-pro'
-];
-
-let workingModelCache = null;
 
 /**
  * Quét 1 ảnh bưu kiện bằng Gemini Vision AI

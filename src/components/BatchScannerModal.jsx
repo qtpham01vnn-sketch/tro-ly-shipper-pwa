@@ -30,7 +30,7 @@ export default function BatchScannerModal({
   onAddOrders,
   apiKey,
   defaultShippingFee = 4500,
-  selectedModel = 'gemini-2.0-flash',
+  selectedModel = 'gemini-2.5-flash',
   onSaveApiKey
 }) {
   const [selectedFiles, setSelectedFiles] = useState([]);
