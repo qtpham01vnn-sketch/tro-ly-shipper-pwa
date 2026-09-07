@@ -13,6 +13,8 @@ import {
   ShieldCheck
 } from 'lucide-react';
 
+import { getSupabaseConfig, saveSupabaseConfig } from '../services/supabaseService';
+
 export default function SettingsModal({
   isOpen,
   onClose,
@@ -30,6 +32,9 @@ export default function SettingsModal({
   const [carrier, setCarrier] = useState(config.carrier || 'J&T Express');
   const [selectedModel, setSelectedModel] = useState(config.selectedModel || 'gemini-1.5-flash');
 
+  const [supabaseUrl, setSupabaseUrl] = useState(() => getSupabaseConfig().supabaseUrl || '');
+  const [supabaseAnonKey, setSupabaseAnonKey] = useState(() => getSupabaseConfig().supabaseAnonKey || '');
+
   if (!isOpen) return null;
 
   const handleSave = (e) => {
@@ -41,6 +46,10 @@ export default function SettingsModal({
       shipperName: shipperName.trim() || 'Shipper Pro',
       carrier: carrier.trim() || 'Giao Hàng',
       selectedModel: selectedModel || 'gemini-1.5-flash'
+    });
+    saveSupabaseConfig({
+      supabaseUrl: supabaseUrl.trim(),
+      supabaseAnonKey: supabaseAnonKey.trim()
     });
     onClose();
   };
@@ -237,9 +246,38 @@ export default function SettingsModal({
             </div>
           </div>
 
+          {/* Cấu hình Supabase Cloud Database */}
+          <div className="bg-slate-950/70 p-3.5 rounded-2xl border border-slate-800 space-y-2">
+            <div className="flex items-center justify-between">
+              <label className="text-xs font-extrabold text-emerald-400 flex items-center gap-1.5">
+                <Database className="w-4 h-4 text-emerald-400" />
+                <span>Supabase Cloud Database (Tự đồng bộ đa thiết bị)</span>
+              </label>
+            </div>
+            <p className="text-[11px] text-slate-400">
+              Nhập URL & Anon Key dự án Supabase để dữ liệu quét trên máy tính tự động nhảy sang điện thoại / Vercel ngay lập tức.
+            </p>
+            <div className="space-y-2">
+              <input
+                type="text"
+                value={supabaseUrl}
+                onChange={(e) => setSupabaseUrl(e.target.value)}
+                placeholder="Supabase Project URL (https://xxxx.supabase.co)"
+                className="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-xs font-mono text-white focus:outline-none focus:border-emerald-500"
+              />
+              <input
+                type="password"
+                value={supabaseAnonKey}
+                onChange={(e) => setSupabaseAnonKey(e.target.value)}
+                placeholder="Supabase Anon Key (eyJhbGciOi...)"
+                className="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-xs font-mono text-white focus:outline-none focus:border-emerald-500"
+              />
+            </div>
+          </div>
+
           {/* Quản lý sao lưu dữ liệu */}
           <div className="pt-2 border-t border-slate-800 space-y-2">
-            <div className="text-xs font-bold text-slate-400">Sao lưu & Đồng bộ Thiết Bị:</div>
+            <div className="text-xs font-bold text-slate-400">Sao lưu & Đồng bộ Thủ Công:</div>
             <div className="grid grid-cols-2 gap-2">
               <button
                 type="button"

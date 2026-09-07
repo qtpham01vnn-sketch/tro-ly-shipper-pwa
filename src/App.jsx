@@ -29,6 +29,12 @@ import PWAInstallGuideModal from './components/PWAInstallGuideModal';
 
 import { INITIAL_SAMPLE_ORDERS } from './data/sampleOrders';
 import { saveDailyLog } from './services/historyService';
+import { 
+  fetchOrdersFromSupabase, 
+  syncOrdersToSupabase, 
+  clearOrdersInSupabase, 
+  syncDailyLogToSupabase 
+} from './services/supabaseService';
 
 // Khóa lưu trữ LocalStorage
 const STORAGE_ORDERS_KEY = 'shipper_app_orders_v1';
@@ -71,6 +77,21 @@ export default function App() {
     return INITIAL_SAMPLE_ORDERS;
   });
 
+  // Tự động kéo dữ liệu từ Supabase Cloud khi mở ứng dụng (nếu có cấu hình)
+  useEffect(() => {
+    async function loadCloudOrders() {
+      try {
+        const cloudOrders = await fetchOrdersFromSupabase();
+        if (cloudOrders && cloudOrders.length > 0) {
+          setOrders(cloudOrders);
+        }
+      } catch (e) {
+        console.warn('Không thể kéo dữ liệu từ Supabase:', e);
+      }
+    }
+    loadCloudOrders();
+  }, []);
+
   // 4. Thứ tự cụm đường do shipper tự sắp xếp
   const [customClusterSequence, setCustomClusterSequence] = useState(() => {
     try {
@@ -87,19 +108,22 @@ export default function App() {
     return localStorage.getItem('shipper_starting_point_v1') || 'Bưu cục J&T / Kho Bình Đa';
   });
 
-  // Tự động lưu nhật ký ngày mỗi khi trạng thái đơn thay đổi
+  // Tự động lưu nhật ký ngày và đồng bộ Supabase Cloud mỗi khi trạng thái đơn thay đổi
   useEffect(() => {
     try {
       localStorage.setItem(STORAGE_ORDERS_KEY, JSON.stringify(orders));
       if (orders.length > 0) {
-        saveDailyLog({
+        const logObj = {
           date: new Date().toISOString().split('T')[0],
           shipperName: config.shipperName,
           carrier: config.carrier,
           orders,
           shippingWage: config.shippingWage,
           baseSalary: config.baseSalary || 5000000
-        });
+        };
+        saveDailyLog(logObj);
+        syncOrdersToSupabase(orders, config.shipperName);
+        syncDailyLogToSupabase(logObj);
       }
     } catch (e) {
       console.error('Lỗi ghi orders vào storage:', e);
@@ -215,17 +239,20 @@ export default function App() {
   // Chốt ca & Lưu vào Sổ Lịch Sử
   const handleResetDay = () => {
     if (orders.length > 0) {
-      saveDailyLog({
+      const logObj = {
         date: new Date().toISOString().split('T')[0],
         shipperName: config.shipperName,
         carrier: config.carrier,
         orders,
         shippingWage: config.shippingWage,
         baseSalary: config.baseSalary || 5000000
-      });
+      };
+      saveDailyLog(logObj);
+      syncDailyLogToSupabase(logObj);
     }
     setOrders([]);
     setCustomClusterSequence([]);
+    clearOrdersInSupabase();
   };
 
   // Mở modal in biên bản TCVN
