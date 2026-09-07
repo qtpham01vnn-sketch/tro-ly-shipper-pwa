@@ -26,7 +26,7 @@ export default function SettingsModal({
   const [baseSalary, setBaseSalary] = useState(config.baseSalary || 5000000);
   const [shipperName, setShipperName] = useState(config.shipperName || 'Shipper Pro');
   const [carrier, setCarrier] = useState(config.carrier || 'J&T Express');
-  const [selectedModel, setSelectedModel] = useState(config.selectedModel || 'gemini-2.5-flash');
+  const [selectedModel, setSelectedModel] = useState(config.selectedModel || 'gemini-1.5-flash');
 
   if (!isOpen) return null;
 
@@ -38,7 +38,7 @@ export default function SettingsModal({
       baseSalary: Number(baseSalary) || 5000000,
       shipperName: shipperName.trim() || 'Shipper Pro',
       carrier: carrier.trim() || 'Giao Hàng',
-      selectedModel: selectedModel || 'gemini-2.5-flash'
+      selectedModel: selectedModel || 'gemini-1.5-flash'
     });
     onClose();
   };

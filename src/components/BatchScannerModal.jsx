@@ -30,7 +30,7 @@ export default function BatchScannerModal({
   onAddOrders,
   apiKey,
   defaultShippingFee = 4500,
-  selectedModel = 'gemini-2.5-flash',
+  selectedModel = 'gemini-1.5-flash',
   onSaveApiKey
 }) {
   const [selectedFiles, setSelectedFiles] = useState([]);
@@ -157,13 +157,59 @@ export default function BatchScannerModal({
         setProgress({ current: completedCount, total: selectedFiles.length });
       }
 
-      // Giãn cách an toàn giữa các request
+      // Giãn cách an toàn 800ms giữa các request để giữ dưới giới hạn Google 15 RPM
       if (fileIdx < selectedFiles.length - 1) {
-        await new Promise((r) => setTimeout(r, 400));
+        await new Promise((r) => setTimeout(r, 800));
       }
     }
 
     setScannedResults(allExtractedOrders);
+    setScanStatus('done');
+  };
+
+  // Quét lại các ảnh bị lỗi/chưa rõ
+  const handleRetryFailedOrders = async () => {
+    const failedItems = scannedResults.filter((o) => !o.scanOk || !o.fullAddress);
+    if (failedItems.length === 0) return;
+
+    setScanStatus('scanning');
+    setProgress({ current: 0, total: failedItems.length });
+
+    const updatedResults = [...scannedResults];
+    let count = 0;
+
+    for (let i = 0; i < updatedResults.length; i++) {
+      const item = updatedResults[i];
+      if (!item.scanOk || !item.fullAddress) {
+        // Tìm file tương ứng trong selectedFiles
+        const matchedFile = selectedFiles.find((f) => f.name === item.originalFileName);
+        if (matchedFile) {
+          try {
+            const reResults = await analyzeShippingLabel(
+              matchedFile,
+              currentKey,
+              defaultShippingFee,
+              selectedModel
+            );
+            const list = Array.isArray(reResults) ? reResults : [reResults];
+            if (list.length > 0 && list[0].scanOk) {
+              updatedResults[i] = {
+                ...list[0],
+                previewUrl: item.previewUrl,
+                originalFileName: matchedFile.name
+              };
+            }
+          } catch (e) {
+            console.error('Lỗi khi quét lại:', e);
+          }
+        }
+        count++;
+        setProgress({ current: count, total: failedItems.length });
+        await new Promise((r) => setTimeout(r, 1000));
+      }
+    }
+
+    setScannedResults(updatedResults);
     setScanStatus('done');
   };
 
@@ -444,18 +490,27 @@ export default function BatchScannerModal({
                 </div>
                 <div className="flex items-center gap-2">
                   {invalidCount > 0 && (
-                    <span className="text-[10px] text-rose-400 font-bold bg-rose-500/10 px-2 py-0.5 rounded-full border border-rose-500/20">
-                      ⚠️ {invalidCount} đơn mờ/chưa rõ
-                    </span>
+                    <>
+                      <span className="text-[10px] text-rose-400 font-bold bg-rose-500/10 px-2 py-0.5 rounded-full border border-rose-500/20">
+                        ⚠️ {invalidCount} đơn lỗi/mờ
+                      </span>
+                      <button
+                        onClick={handleRetryFailedOrders}
+                        className="text-xs bg-amber-500/20 hover:bg-amber-500/30 text-amber-300 px-2.5 py-1 rounded-xl border border-amber-500/30 font-bold flex items-center gap-1 transition"
+                      >
+                        <RotateCcw className="w-3.5 h-3.5" />
+                        <span>Quét lại đơn lỗi</span>
+                      </button>
+                    </>
                   )}
                   <button
                     onClick={() => {
                       setSelectedFiles([]);
                       setScanStatus('idle');
                     }}
-                    className="text-xs text-sky-400 hover:underline font-semibold"
+                    className="text-xs text-sky-400 hover:underline font-semibold ml-1"
                   >
-                    + Quét ảnh khác
+                    + Chọn ảnh khác
                   </button>
                 </div>
               </div>

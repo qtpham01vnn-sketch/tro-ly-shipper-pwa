@@ -6,12 +6,32 @@
 export const CANDIDATE_MODELS = [
   'gemini-1.5-flash',
   'gemini-1.5-flash-latest',
-  'gemini-1.5-flash-8b',
-  'gemini-2.5-flash',
-  'gemini-1.5-pro'
+  'gemini-1.5-flash-8b'
 ];
 
 let workingModelCache = 'gemini-1.5-flash';
+
+/**
+ * Lấy danh sách các model khả dụng từ chính Google API Key
+ */
+export async function getAvailableModels(apiKey) {
+  if (!apiKey) return ['gemini-1.5-flash'];
+  const cleanKey = apiKey.replace(/[\r\n\t\s]/g, '');
+  try {
+    const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models?key=${cleanKey}`);
+    if (res.ok) {
+      const data = await res.json();
+      const valid = (data.models || [])
+        .filter(m => m.supportedGenerationMethods?.includes('generateContent'))
+        .map(m => m.name.replace(/^models\//, ''))
+        .filter(m => m.includes('flash'));
+      if (valid.length > 0) return valid;
+    }
+  } catch (e) {
+    console.warn('Lỗi lấy danh sách models:', e);
+  }
+  return ['gemini-1.5-flash', 'gemini-1.5-flash-latest'];
+}
 
 /**
  * Kiểm tra nhanh API Key có hoạt động hay không (Ping Test)
@@ -22,41 +42,34 @@ export async function testGeminiApiKey(apiKey) {
   }
   const cleanKey = apiKey.replace(/[\r\n\t\s]/g, '');
   
-  let lastErrMsg = '';
-  for (const model of CANDIDATE_MODELS) {
-    const testUrl = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${cleanKey}`;
-    try {
-      const res = await fetch(testUrl, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          contents: [{ parts: [{ text: 'Ping' }] }]
-        })
-      });
-
-      if (res.ok) {
-        workingModelCache = model;
-        return { ok: true, message: `Kết nối thành công! Đang sử dụng model AI: ${model}`, model };
-      } else {
-        const err = await res.json().catch(() => ({}));
-        lastErrMsg = err?.error?.message || `Lỗi phản hồi (${res.status})`;
-        
-        // Nếu API key sai/hết hạn thì báo ngay
-        if (lastErrMsg.includes('API_KEY_INVALID') || lastErrMsg.includes('API key not valid')) {
-          return { ok: false, message: 'API Key không hợp lệ hoặc đã bị vô hiệu hóa trên Google Cloud.' };
-        }
-        
-        // Nếu lỗi do model không khả dụng/không tìm thấy, tự động thử model tiếp theo trong danh sách
-        if (res.status === 404 || lastErrMsg.includes('not found') || lastErrMsg.includes('no longer available') || lastErrMsg.includes('not supported')) {
-          continue;
-        }
+  // 1. Kiểm tra API Key với danh sách models Google cung cấp
+  try {
+    const modelsRes = await fetch(`https://generativelanguage.googleapis.com/v1beta/models?key=${cleanKey}`);
+    if (!modelsRes.ok) {
+      const err = await modelsRes.json().catch(() => ({}));
+      const errMsg = err?.error?.message || `Lỗi phản hồi (${modelsRes.status})`;
+      if (errMsg.includes('API_KEY_INVALID') || errMsg.includes('API key not valid')) {
+        return { ok: false, message: 'API Key không hợp lệ hoặc đã bị vô hiệu hóa trên Google Cloud.' };
       }
-    } catch (e) {
-      lastErrMsg = e.message || 'Lỗi mạng khi kiểm tra API Key';
+      return { ok: false, message: errMsg };
     }
-  }
 
-  return { ok: false, message: lastErrMsg || 'Không thể kết nối tới Google Gemini AI. Vui lòng kiểm tra lại Key.' };
+    const modelsData = await modelsRes.json();
+    const availableFlash = (modelsData.models || [])
+      .map(m => m.name.replace(/^models\//, ''))
+      .filter(m => m.includes('1.5-flash') || m.includes('flash'));
+
+    const chosenModel = availableFlash[0] || 'gemini-1.5-flash';
+    workingModelCache = chosenModel;
+
+    return { 
+      ok: true, 
+      message: `Kết nối thành công! AI Vision đang hoạt động với model: ${chosenModel}`, 
+      model: chosenModel 
+    };
+  } catch (e) {
+    return { ok: false, message: e.message || 'Lỗi mạng khi kiểm tra API Key' };
+  }
 }
 
 /**
@@ -247,63 +260,55 @@ Trả về duy nhất định dạng JSON chuẩn sau:
     }
   };
 
-  const modelsToTry = [];
-  if (workingModelCache && !modelsToTry.includes(workingModelCache)) modelsToTry.push(workingModelCache);
-  if (userModel && !modelsToTry.includes(userModel) && CANDIDATE_MODELS.includes(userModel)) modelsToTry.push(userModel);
-  CANDIDATE_MODELS.forEach((m) => {
-    if (!modelsToTry.includes(m)) modelsToTry.push(m);
-  });
+  const modelToUse = workingModelCache || (userModel && CANDIDATE_MODELS.includes(userModel) ? userModel : 'gemini-1.5-flash');
+  const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/${modelToUse}:generateContent?key=${cleanKey}`;
 
   let lastError = null;
   let resData = null;
 
-  for (const model of modelsToTry) {
-    const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${cleanKey}`;
-    
-    // Thử tối đa 2 lần cho 1 model nếu gặp 429 Quota
-    for (let attempt = 0; attempt < 2; attempt++) {
-      const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 20000);
+  // Thử tối đa 3 lần với backoff thời gian tăng dần nếu gặp 429 Quota
+  const maxAttempts = 3;
+  for (let attempt = 1; attempt <= maxAttempts; attempt++) {
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 25000);
 
-      try {
-        const response = await fetch(apiUrl, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(requestBody),
-          signal: controller.signal
-        });
-        clearTimeout(timeoutId);
+    try {
+      const response = await fetch(apiUrl, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(requestBody),
+        signal: controller.signal
+      });
+      clearTimeout(timeoutId);
 
-        if (response.ok) {
-          resData = await response.json();
-          workingModelCache = model;
-          break;
-        } else {
-          const errJson = await response.json().catch(() => ({}));
-          const errMsg = errJson?.error?.message || `Lỗi ${response.status}`;
-          lastError = new Error(errMsg);
-
-          // Nếu là lỗi 429 (vượt hạn mức tạm thời), chờ 2.5s rồi thử lại
-          if (response.status === 429) {
-            await new Promise((r) => setTimeout(r, 2500));
-            continue;
-          } else {
-            // Lỗi 404 (model không hỗ trợ) -> thoát vòng lặp attempt để chuyển model khác
-            break;
-          }
-        }
-      } catch (e) {
-        clearTimeout(timeoutId);
-        if (e.name === 'AbortError') {
-          lastError = new Error('Quá thời gian phản hồi (Timeout). Vui lòng thử lại.');
-        } else {
-          lastError = e;
-        }
+      if (response.ok) {
+        resData = await response.json();
         break;
-      }
-    }
+      } else {
+        const errJson = await response.json().catch(() => ({}));
+        const errMsg = errJson?.error?.message || `Lỗi ${response.status}`;
 
-    if (resData) break;
+        if (response.status === 429) {
+          lastError = new Error(`Google AI tạm thời đạt giới hạn 15 ảnh/phút (Mã 429). Đang đợi nhả hạn mức...`);
+          if (attempt < maxAttempts) {
+            // Chờ tăng dần: 3.5s, 7s
+            await new Promise((r) => setTimeout(r, attempt * 3500));
+            continue;
+          }
+        } else {
+          lastError = new Error(errMsg);
+          break;
+        }
+      }
+    } catch (e) {
+      clearTimeout(timeoutId);
+      if (e.name === 'AbortError') {
+        lastError = new Error('Quá thời gian phản hồi (Timeout). Vui lòng kiểm tra lại mạng.');
+      } else {
+        lastError = e;
+      }
+      break;
+    }
   }
 
   if (!resData) {

@@ -53,7 +53,7 @@ export default function App() {
       baseSalary: 5000000,
       shipperName: 'Thiên Long',
       carrier: 'J&T Express',
-      selectedModel: 'gemini-2.5-flash'
+      selectedModel: 'gemini-1.5-flash'
     };
   });
 
