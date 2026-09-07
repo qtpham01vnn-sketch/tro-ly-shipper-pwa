@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html lang="vi" class="h-full bg-slate-900 text-slate-100 antialiased select-none">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
+    
+    <!-- PWA & Mobile Web App Meta -->
+    <title>Trợ Lý Shipper Thông Minh - Giao Nhanh Tuyến Chặng Cuối</title>
+    <meta name="description" content="Ứng dụng quét vận đơn AI, gom cụm phân tuyến đường và đối soát doanh thu COD cho Shipper chặng cuối Việt Nam" />
+    <meta name="theme-color" content="#0f172a" />
+    <meta name="mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+    <meta name="apple-mobile-web-app-title" content="TrợLýShipper" />
+    
+    <link rel="icon" type="image/svg+xml" href="/icon.svg" />
+    <link rel="apple-touch-icon" href="/icon.svg" />
+    <link rel="manifest" href="/manifest.json" />
+
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+  </head>
+  <body class="h-full bg-slate-950 font-sans text-slate-100 overflow-x-hidden">
+    <div id="root" class="min-h-full"></div>
+    <script type="module" src="/src/main.jsx"></script>
+    <script>
+      // Đăng ký Service Worker cho PWA Offline Caching
+      if ('serviceWorker' in navigator) {
+        window.addEventListener('load', () => {
+          navigator.serviceWorker.register('/sw.js').catch(err => {
+            console.log('SW registration error:', err);
+          });
+        });
+      }
+    </script>
+  </body>
+</html>

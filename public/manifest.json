@@ -1,0 +1,31 @@
+{
+  "name": "Trợ Lý Shipper Thông Minh",
+  "short_name": "Trợ Lý Shipper",
+  "description": "Ứng dụng quét đơn AI, gom cụm phân tuyến và đối soát COD cho Shipper chặng cuối",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#020617",
+  "theme_color": "#0f172a",
+  "orientation": "portrait-primary",
+  "icons": [
+    {
+      "src": "/icon.svg",
+      "sizes": "192x192 512x512",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ],
+  "categories": ["business", "productivity", "utilities"],
+  "shortcuts": [
+    {
+      "name": "Quét vận đơn",
+      "url": "/?action=scan",
+      "description": "Chụp hoặc tải ảnh phiếu gửi hàng loạt"
+    },
+    {
+      "name": "Báo cáo cuối ca",
+      "url": "/?action=report",
+      "description": "Tổng kết doanh thu và đơn tồn"
+    }
+  ]
+}
