@@ -41,6 +41,7 @@ export function generateZaloReport({
 
   // Tính tổng công nhật kiếm được
   const totalShipperEarnings = deliveredCount * shippingWage;
+  const totalTip = deliveredOrders.reduce((sum, o) => sum + (Number(o.tipAmount) || 0), 0);
 
   let report = `📦 BÁO CÁO KẾT CA GIAO HÀNG - ${dateStr}\n`;
   report += `👤 Shipper: ${shipperName} | ${carrier}\n`;
@@ -59,6 +60,10 @@ export function generateZaloReport({
   report += `• 📲 Khách chuyển khoản TK: ${formatVND(transferCOD)}\n`;
   report += `• 📦 Tổng COD toàn bộ ca: ${formatVND(totalDeliveredCOD)}\n`;
   report += `• 🛵 Tiền công nhật tạm tính: ${formatVND(totalShipperEarnings)} (${deliveredCount} đơn x ${formatVND(shippingWage)})\n`;
+  if (totalTip > 0) {
+    report += `• 🎁 Tiền Tip khách bo thêm: +${formatVND(totalTip)}\n`;
+    report += `• 💵 Tổng thu nhập shipper thực nhận: ${formatVND(totalShipperEarnings + totalTip)}\n`;
+  }
   report += `━━━━━━━━━━━━━━━━━━━━━\n`;
 
   if (failedCount > 0) {
@@ -96,6 +101,7 @@ export function exportOrdersToCSV(orders = [], filename = 'Doi_Soat_Giao_Hang.cs
     'Tuyến / Cụm đường',
     'Tiền COD (VNĐ)',
     'Hình thức thanh toán',
+    'Tiền Tip / Bo (VNĐ)',
     'Tiền công (VNĐ)',
     'Trạng thái',
     'Lý do thất bại',
@@ -122,6 +128,7 @@ export function exportOrdersToCSV(orders = [], filename = 'Doi_Soat_Giao_Hang.cs
       `"${(item.streetOrArea || '').replace(/"/g, '""')}"`,
       item.codAmount || 0,
       `"${payText}"`,
+      item.tipAmount || 0,
       item.shippingFee || 4500,
       `"${statusText}"`,
       `"${(item.failReason || '').replace(/"/g, '""')}"`,

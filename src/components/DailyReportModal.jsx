@@ -54,6 +54,8 @@ export default function DailyReportModal({
     .reduce((sum, o) => sum + (Number(o.codAmount) || 0), 0);
 
   const totalShipperEarnings = deliveredCount * shippingWage;
+  const totalTip = deliveredOrders.reduce((sum, o) => sum + (Number(o.tipAmount) || 0), 0);
+  const totalShipperIncome = totalShipperEarnings + totalTip;
 
   const reportText = generateZaloReport({
     shipperName,
@@ -115,17 +117,17 @@ export default function DailyReportModal({
               </div>
             </div>
 
-            {/* Box 2: Tiền công kiếm được */}
+            {/* Box 2: Tiền công & Tiền Tip kiếm được */}
             <div className="p-3.5 bg-gradient-to-br from-amber-950/60 to-slate-950 border border-amber-500/30 rounded-2xl">
               <div className="flex items-center gap-1.5 text-xs text-amber-400 font-bold mb-1">
                 <DollarSign className="w-4 h-4" />
-                <span>Tiền Công Thực Nhận</span>
+                <span>Thu Nhập Thực Nhận</span>
               </div>
               <div className="text-xl sm:text-2xl font-black text-amber-400 tracking-tight">
-                {formatVND(totalShipperEarnings)}
+                {formatVND(totalShipperIncome)}
               </div>
-              <div className="text-[10px] text-slate-400 mt-1">
-                {deliveredCount} đơn x {formatVND(shippingWage)}/đơn
+              <div className="text-[10px] text-slate-400 mt-1 truncate">
+                Công: {formatVND(totalShipperEarnings)} {totalTip > 0 && `+ 🎁 Tip: ${formatVND(totalTip)}`}
               </div>
             </div>
           </div>
@@ -139,14 +141,14 @@ export default function DailyReportModal({
               </span>
             </div>
             
-            <div className="grid grid-cols-2 gap-2 text-xs">
+            <div className={`grid ${totalTip > 0 ? 'grid-cols-3' : 'grid-cols-2'} gap-2 text-xs`}>
               <div className="p-2.5 rounded-xl bg-slate-900 border border-slate-800 space-y-1">
                 <div className="text-[11px] text-slate-400 font-medium">💵 Tiền Mặt thu thực tế:</div>
                 <div className="text-base font-black text-emerald-400 font-mono">
                   {formatVND(cashCOD)}
                 </div>
                 <div className="text-[10px] text-slate-500 font-medium">
-                  Móc túi nộp thủ quỹ bưu cục
+                  Móc túi nộp thủ quỹ
                 </div>
               </div>
 
@@ -159,6 +161,18 @@ export default function DailyReportModal({
                   Đã vào tài khoản cá nhân
                 </div>
               </div>
+
+              {totalTip > 0 && (
+                <div className="p-2.5 rounded-xl bg-amber-950/30 border border-amber-500/30 space-y-1">
+                  <div className="text-[11px] text-amber-300 font-medium">🎁 Khách Bo (Tip):</div>
+                  <div className="text-base font-black text-amber-400 font-mono">
+                    +{formatVND(totalTip)}
+                  </div>
+                  <div className="text-[10px] text-amber-400/80 font-medium">
+                    Shipper bỏ túi riêng
+                  </div>
+                </div>
+              )}
             </div>
           </div>
 

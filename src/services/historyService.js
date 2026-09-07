@@ -41,6 +41,7 @@ export function saveDailyLog({
   const totalOrders = orders.length;
 
   const totalCOD = deliveredOrders.reduce((sum, o) => sum + (Number(o.codAmount) || 0), 0);
+  const totalTip = deliveredOrders.reduce((sum, o) => sum + (Number(o.tipAmount) || 0), 0);
   const totalWageEarned = deliveredCount * shippingWage;
 
   const newLogEntry = {
@@ -55,8 +56,9 @@ export function saveDailyLog({
     totalCOD,
     shippingWage,
     totalWageEarned,
+    totalTip,
     baseSalary,
-    totalIncome: baseSalary + totalWageEarned,
+    totalIncome: baseSalary + totalWageEarned + totalTip,
     orders
   };
 

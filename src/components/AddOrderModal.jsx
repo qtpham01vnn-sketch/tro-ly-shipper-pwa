@@ -29,6 +29,7 @@ export default function AddOrderModal({
   const [codAmount, setCodAmount] = useState(0);
   const [deliveryNote, setDeliveryNote] = useState('');
   const [orderCarrier, setOrderCarrier] = useState(carrier);
+  const [tipAmount, setTipAmount] = useState(0);
 
   useEffect(() => {
     if (editingOrder) {
@@ -40,6 +41,7 @@ export default function AddOrderModal({
       setCodAmount(editingOrder.codAmount || 0);
       setDeliveryNote(editingOrder.deliveryNote || '');
       setOrderCarrier(editingOrder.carrier || carrier);
+      setTipAmount(editingOrder.tipAmount || 0);
     } else {
       setTrackingCode('VN-' + Math.floor(100000 + Math.random() * 900000));
       setCustomerName('');
@@ -49,6 +51,7 @@ export default function AddOrderModal({
       setCodAmount(0);
       setDeliveryNote('');
       setOrderCarrier(carrier);
+      setTipAmount(0);
     }
   }, [editingOrder, isOpen, carrier]);
 
@@ -78,9 +81,11 @@ export default function AddOrderModal({
       fullAddress: fullAddress.trim(),
       streetOrArea: streetOrArea.trim() || extractStreetOrArea(fullAddress),
       codAmount: Number(codAmount) || 0,
+      tipAmount: Number(tipAmount) || 0,
       shippingFee: editingOrder?.shippingFee || defaultShippingFee,
       deliveryNote: deliveryNote.trim(),
       status: editingOrder?.status || 'pending',
+      paymentMethod: editingOrder?.paymentMethod || 'cash',
       failReason: editingOrder?.failReason || '',
       callAttempts: editingOrder?.callAttempts || 0,
       carrier: orderCarrier || carrier
@@ -211,6 +216,39 @@ export default function AddOrderModal({
                 placeholder="0"
                 className="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-2 text-xs font-black text-emerald-400 focus:outline-none focus:border-emerald-500"
               />
+            </div>
+          </div>
+
+          {/* Ô Tiền Tip / Bo thêm nếu có */}
+          <div className="bg-slate-950/60 p-2.5 rounded-xl border border-slate-800 space-y-1.5">
+            <div className="flex items-center justify-between">
+              <label className="text-xs font-bold text-slate-300">
+                🎁 Tiền Tip / Khách Bo thêm (VNĐ):
+              </label>
+              <input
+                type="number"
+                step="1000"
+                value={tipAmount}
+                onChange={(e) => setTipAmount(Number(e.target.value) || 0)}
+                placeholder="0"
+                className="w-32 bg-slate-900 border border-slate-700 rounded-lg px-2.5 py-1 text-xs font-bold text-amber-400 text-right focus:outline-none focus:border-amber-500"
+              />
+            </div>
+            <div className="flex items-center gap-1.5">
+              {[0, 5000, 10000, 20000].map((amt) => (
+                <button
+                  key={amt}
+                  type="button"
+                  onClick={() => setTipAmount(amt)}
+                  className={`flex-1 py-1 rounded-lg text-[10px] font-bold border transition ${
+                    tipAmount === amt
+                      ? 'bg-amber-500 text-slate-950 border-amber-400'
+                      : 'bg-slate-900 text-slate-400 border-slate-800 hover:bg-slate-800'
+                  }`}
+                >
+                  {amt === 0 ? '0đ' : `+${amt / 1000}k`}
+                </button>
+              ))}
             </div>
           </div>
 

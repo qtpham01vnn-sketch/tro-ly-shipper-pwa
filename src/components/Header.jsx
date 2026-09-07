@@ -34,6 +34,11 @@ export default function Header({
   // Tính tổng tiền công kiếm được
   const totalEarnings = deliveredCount * shippingWage;
 
+  // Tính tổng tiền Tip khách bo thêm
+  const totalTip = orders
+    .filter((o) => o.status === 'delivered')
+    .reduce((sum, o) => sum + (Number(o.tipAmount) || 0), 0);
+
   // Tính tổng tiền COD cần nộp (chỉ tính đơn đã giao)
   const totalDeliveredCOD = orders
     .filter((o) => o.status === 'delivered')
@@ -126,19 +131,20 @@ export default function Header({
             </div>
           </div>
 
-          {/* Cột 2: Tiền công kiếm được */}
+          {/* Cột 2: Tiền công & Tiền Tip */}
           <div className="bg-slate-950/70 border border-slate-800 rounded-2xl p-2.5 flex flex-col justify-between">
             <div className="flex items-center justify-between text-[11px] text-slate-400 mb-1">
               <span className="flex items-center gap-1 font-semibold text-amber-300">
                 <DollarSign className="w-3.5 h-3.5 text-amber-400" />
-                Tiền công
+                <span>Thu nhập {totalTip > 0 ? '(+Tip)' : 'hôm nay'}</span>
               </span>
             </div>
             <div className="text-lg font-black text-amber-400 tracking-tight leading-none truncate">
-              {formatVND(totalEarnings)}
+              {formatVND(totalEarnings + totalTip)}
             </div>
-            <div className="text-[10px] text-slate-500 mt-1 font-medium truncate">
-              +{formatVND(shippingWage)}/đơn
+            <div className="text-[9.5px] text-slate-400 mt-1 font-medium truncate flex items-center justify-between">
+              <span>Công: {formatVND(totalEarnings)}</span>
+              {totalTip > 0 && <span className="text-amber-300 font-bold">🎁 +{formatVND(totalTip)}</span>}
             </div>
           </div>
 

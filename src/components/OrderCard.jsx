@@ -29,6 +29,7 @@ export default function OrderCard({
 }) {
   const [copied, setCopied] = useState(false);
   const [showPaymentChoice, setShowPaymentChoice] = useState(false);
+  const [selectedTip, setSelectedTip] = useState(0);
 
   const handleCopy = (text) => {
     navigator.clipboard.writeText(text);
@@ -204,16 +205,21 @@ export default function OrderCard({
               ? 'bg-sky-950/60 border border-sky-500/40 text-sky-300'
               : 'bg-emerald-950/40 border border-emerald-500/30 text-emerald-400'
           }`}>
-            <div className="flex items-center gap-2 text-xs font-bold">
-              <CheckCircle2 className={`w-4 h-4 ${paymentMethod === 'transfer' ? 'text-sky-400' : 'text-emerald-400'}`} />
+            <div className="flex items-center gap-1.5 text-xs font-bold flex-wrap">
+              <CheckCircle2 className={`w-4 h-4 shrink-0 ${paymentMethod === 'transfer' ? 'text-sky-400' : 'text-emerald-400'}`} />
               <span>
                 Giao thành công • {hasCOD ? (paymentMethod === 'transfer' ? '📲 Khách Chuyển khoản' : '💵 Thu Tiền mặt') : '0đ'}
               </span>
+              {Number(order.tipAmount) > 0 && (
+                <span className="px-1.5 py-0.5 rounded-md bg-amber-500/20 text-amber-300 border border-amber-500/40 text-[10px] font-black">
+                  🎁 Bo: +{formatVND(order.tipAmount)}
+                </span>
+              )}
             </div>
-            <div className="flex items-center gap-1.5">
+            <div className="flex items-center gap-1.5 shrink-0">
               {hasCOD && (
                 <button
-                  onClick={() => onMarkDelivered(order.id, paymentMethod === 'transfer' ? 'cash' : 'transfer')}
+                  onClick={() => onMarkDelivered(order.id, paymentMethod === 'transfer' ? 'cash' : 'transfer', order.tipAmount || 0)}
                   className={`text-[10px] px-2 py-0.5 rounded font-bold transition border ${
                     paymentMethod === 'transfer'
                       ? 'text-emerald-400 hover:text-emerald-300 bg-emerald-950/50 border-emerald-500/40'
@@ -235,16 +241,41 @@ export default function OrderCard({
           </div>
         ) : showPaymentChoice ? (
           /* Popup chọn nhanh phương thức khi bấm Đã Giao */
-          <div className="p-2 bg-slate-950 rounded-xl border border-emerald-500/40 space-y-2 animate-fade-in">
+          <div className="p-2.5 bg-slate-950 rounded-xl border border-emerald-500/40 space-y-2 animate-fade-in">
             <div className="text-center text-[11px] font-bold text-slate-300">
               Khách thanh toán COD <strong className="text-emerald-400">{formatVND(order.codAmount)}</strong> bằng hình thức nào?
             </div>
+
+            {/* Khách có bo (tip) thêm không */}
+            <div className="bg-slate-900/80 p-2 rounded-xl border border-slate-800 space-y-1">
+              <div className="flex items-center justify-between text-[10px] font-bold text-slate-400">
+                <span>🎁 Khách bo thêm (Tip)?</span>
+                {selectedTip > 0 && <span className="text-amber-400 font-black">+{formatVND(selectedTip)}</span>}
+              </div>
+              <div className="grid grid-cols-4 gap-1">
+                {[0, 5000, 10000, 20000].map((amt) => (
+                  <button
+                    key={amt}
+                    type="button"
+                    onClick={() => setSelectedTip(amt)}
+                    className={`py-1 rounded-lg text-[10px] font-extrabold transition active:scale-95 border ${
+                      selectedTip === amt
+                        ? 'bg-amber-500 text-slate-950 border-amber-400 font-black'
+                        : 'bg-slate-950 text-slate-300 border-slate-800 hover:bg-slate-800'
+                    }`}
+                  >
+                    {amt === 0 ? '0đ' : `+${amt / 1000}k`}
+                  </button>
+                ))}
+              </div>
+            </div>
+
             <div className="grid grid-cols-2 gap-2">
               <button
                 type="button"
                 onClick={() => {
                   setShowPaymentChoice(false);
-                  onMarkDelivered(order.id, 'cash');
+                  onMarkDelivered(order.id, 'cash', selectedTip);
                 }}
                 className="py-2 px-2 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white font-extrabold text-xs flex items-center justify-center gap-1.5 shadow-md active:scale-95 transition"
               >
@@ -256,7 +287,7 @@ export default function OrderCard({
                 type="button"
                 onClick={() => {
                   setShowPaymentChoice(false);
-                  onMarkDelivered(order.id, 'transfer');
+                  onMarkDelivered(order.id, 'transfer', selectedTip);
                 }}
                 className="py-2 px-2 rounded-lg bg-sky-600 hover:bg-sky-500 text-white font-extrabold text-xs flex items-center justify-center gap-1.5 shadow-md active:scale-95 transition"
               >

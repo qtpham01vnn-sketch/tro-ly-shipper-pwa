@@ -51,8 +51,9 @@ export default function TCVNReportModal({
     .filter((o) => o.paymentMethod === 'transfer')
     .reduce((sum, o) => sum + (Number(o.codAmount) || 0), 0);
 
+  const totalTip = deliveredOrders.reduce((sum, o) => sum + (Number(o.tipAmount) || 0), 0);
   const totalShipperWage = deliveredCount * shippingWage;
-  const totalIncome = baseSalary + totalShipperWage;
+  const totalIncome = baseSalary + totalShipperWage + totalTip;
 
   const handlePrint = () => {
     window.print();
@@ -229,9 +230,22 @@ export default function TCVNReportModal({
                       +{formatVND(totalShipperWage)}
                     </td>
                   </tr>
+                  {totalTip > 0 && (
+                    <tr className="bg-amber-50/40">
+                      <td className="border border-black p-1.5 text-center font-bold">4</td>
+                      <td className="border border-black p-1.5">
+                        <strong>Tiền Tip / Khách thưởng thêm (Thu nhập cá nhân Shipper)</strong>
+                        <div className="text-[11px] text-gray-600 italic">Tiền bo thực tế của khách trong ca (bỏ túi riêng)</div>
+                      </td>
+                      <td className="border border-black p-1.5 text-center font-bold text-amber-800">Thưởng thêm</td>
+                      <td className="border border-black p-1.5 text-right font-bold text-amber-800">
+                        +{formatVND(totalTip)}
+                      </td>
+                    </tr>
+                  )}
                   <tr className="bg-gray-100 font-bold text-sm">
                     <td colSpan={3} className="border border-black p-2 text-right uppercase">
-                      TỔNG THU NHẬP SHIPPER TÍCH LŨY (Lương cứng + Tiền công):
+                      TỔNG THU NHẬP SHIPPER TÍCH LŨY (Lương cứng + Tiền công {totalTip > 0 ? '+ Tiền Tip' : ''}):
                     </td>
                     <td className="border border-black p-2 text-right text-green-700 font-black">
                       {formatVND(totalIncome)}

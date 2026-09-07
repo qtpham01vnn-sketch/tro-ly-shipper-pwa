@@ -28,6 +28,8 @@ export default function VietQRModal({
 }) {
   const [copiedAcc, setCopiedAcc] = useState(false);
   const [copiedAmount, setCopiedAmount] = useState(false);
+  const [tipAmount, setTipAmount] = useState(0);
+  const [customTipInput, setCustomTipInput] = useState('');
 
   if (!isOpen || !order) return null;
 
@@ -35,12 +37,13 @@ export default function VietQRModal({
   const accountNo = (bankConfig.accountNo || '').trim();
   const accountName = (bankConfig.accountName || 'SHIPPER PRO').trim();
   const codAmount = Number(order.codAmount) || 0;
+  const totalPayAmount = codAmount + tipAmount;
   const trackingCode = order.trackingCode || order.id || '';
   const transferContent = `COD ${trackingCode}`.trim();
 
-  // URL sinh ảnh VietQR chuẩn Napas 247
+  // URL sinh ảnh VietQR chuẩn Napas 247 (tự động cộng thêm tiền Tip nếu khách bo)
   const qrImageUrl = accountNo 
-    ? `https://img.vietqr.io/image/${bankId}-${accountNo}-compact2.png?amount=${codAmount}&addInfo=${encodeURIComponent(transferContent)}&accountName=${encodeURIComponent(accountName)}`
+    ? `https://img.vietqr.io/image/${bankId}-${accountNo}-compact2.png?amount=${totalPayAmount}&addInfo=${encodeURIComponent(transferContent)}&accountName=${encodeURIComponent(accountName)}`
     : null;
 
   const handleCopy = (text, type) => {
@@ -56,16 +59,27 @@ export default function VietQRModal({
 
   const handleConfirm = () => {
     if (onConfirmTransferDelivered) {
-      onConfirmTransferDelivered(order.id, 'transfer');
+      onConfirmTransferDelivered(order.id, 'transfer', tipAmount);
     }
     onClose();
+  };
+
+  const handleSelectTip = (amount) => {
+    setTipAmount(amount);
+    setCustomTipInput('');
+  };
+
+  const handleCustomTipChange = (val) => {
+    const num = Number(val.replace(/\D/g, '')) || 0;
+    setCustomTipInput(val);
+    setTipAmount(num);
   };
 
   const currentBankObj = VIETNAM_BANKS.find(b => b.id === bankId) || VIETNAM_BANKS[0];
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-3 bg-slate-950/85 backdrop-blur-sm animate-fade-in">
-      <div className="bg-slate-900 border border-slate-800 rounded-3xl w-full max-w-md flex flex-col shadow-2xl overflow-hidden">
+      <div className="bg-slate-900 border border-slate-800 rounded-3xl w-full max-w-md max-h-[94vh] flex flex-col shadow-2xl overflow-hidden">
         {/* Header Modal */}
         <div className="p-4 bg-slate-950/80 border-b border-slate-800 flex items-center justify-between">
           <div className="flex items-center gap-2.5">
@@ -86,25 +100,60 @@ export default function VietQRModal({
         </div>
 
         {/* Nội dung QR */}
-        <div className="p-5 flex flex-col items-center space-y-4">
+        <div className="p-4 overflow-y-auto flex flex-col items-center space-y-3.5">
           {/* Số tiền cần thu nổi bật */}
           <div className="text-center">
-            <div className="text-xs font-bold text-slate-400 uppercase tracking-wider">Số tiền COD cần thanh toán</div>
-            <div className="text-2xl font-black text-emerald-400 mt-0.5">
-              {formatVND(codAmount)}
+            <div className="text-xs font-bold text-slate-400 uppercase tracking-wider">
+              {tipAmount > 0 ? 'Tổng thanh toán (Gốc + Tip)' : 'Số tiền COD cần thanh toán'}
             </div>
+            <div className="text-2xl sm:text-3xl font-black text-emerald-400 mt-0.5 font-mono">
+              {formatVND(totalPayAmount)}
+            </div>
+            {tipAmount > 0 && (
+              <div className="text-[11px] font-semibold text-amber-300">
+                (COD: {formatVND(codAmount)} + 🎁 Tip: {formatVND(tipAmount)})
+              </div>
+            )}
             <div className="text-xs text-slate-300 font-medium mt-0.5">
               Khách nhận: <strong className="text-white">{order.customerName || 'Khách hàng'}</strong>
             </div>
           </div>
 
+          {/* Ô Chọn Tiền Khách Bo Thêm Nhanh (1-Touch Tip) */}
+          <div className="w-full bg-slate-950/70 p-2.5 rounded-2xl border border-slate-800 space-y-1.5">
+            <div className="flex items-center justify-between text-[11px] font-bold">
+              <span className="text-slate-400 flex items-center gap-1">
+                🎁 <span>Khách có bo (tip) thêm không?</span>
+              </span>
+              {tipAmount > 0 && (
+                <span className="text-amber-400">+{formatVND(tipAmount)}</span>
+              )}
+            </div>
+            <div className="grid grid-cols-4 gap-1.5">
+              {[0, 5000, 10000, 20000].map((amt) => (
+                <button
+                  key={amt}
+                  type="button"
+                  onClick={() => handleSelectTip(amt)}
+                  className={`py-1 px-1.5 rounded-xl text-[11px] font-extrabold transition active:scale-95 border ${
+                    tipAmount === amt && !customTipInput
+                      ? 'bg-amber-500 text-slate-950 border-amber-400 shadow-md'
+                      : 'bg-slate-900 hover:bg-slate-800 text-slate-300 border-slate-700'
+                  }`}
+                >
+                  {amt === 0 ? 'Không' : `+${amt / 1000}k`}
+                </button>
+              ))}
+            </div>
+          </div>
+
           {/* Khung ảnh QR Code */}
           {accountNo ? (
-            <div className="relative p-3 bg-white rounded-2xl shadow-xl border-4 border-emerald-500/30">
+            <div className="relative p-2.5 bg-white rounded-2xl shadow-xl border-4 border-emerald-500/30">
               <img 
                 src={qrImageUrl} 
                 alt="VietQR Chuyển Khoản"
-                className="w-56 h-auto object-contain rounded-lg"
+                className="w-52 h-auto object-contain rounded-lg"
               />
               <div className="mt-1 text-center text-[10px] text-slate-600 font-bold">
                 Quét bằng bất kỳ App Ngân hàng nào (VietQR / Napas247)
@@ -158,7 +207,7 @@ export default function VietQRModal({
         </div>
 
         {/* Footer Actions */}
-        <div className="p-4 bg-slate-950/80 border-t border-slate-800 flex gap-2">
+        <div className="p-3.5 bg-slate-950/80 border-t border-slate-800 flex gap-2">
           <button
             type="button"
             onClick={onClose}
@@ -173,7 +222,7 @@ export default function VietQRModal({
             className="flex-1 py-2.5 px-3 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-500 hover:from-emerald-500 hover:to-teal-400 text-white font-extrabold text-xs shadow-lg shadow-emerald-500/20 active:scale-98 transition flex items-center justify-center gap-1.5"
           >
             <CheckCircle2 className="w-4 h-4" />
-            <span>Đã Nhận Tiền CK</span>
+            <span>Đã Nhận {formatVND(totalPayAmount)}</span>
           </button>
         </div>
       </div>

@@ -175,11 +175,21 @@ export default function App() {
     }
   };
 
-  // Cập nhật trạng thái "Đã giao thành công" (Tiền mặt hoặc Chuyển khoản)
-  const handleMarkDelivered = (orderId, paymentMethod = 'cash') => {
+  // Cập nhật trạng thái "Đã giao thành công" (Tiền mặt hoặc Chuyển khoản + Tiền Tip nếu có)
+  const handleMarkDelivered = (orderId, paymentMethod = 'cash', tipAmount = 0) => {
     triggerHaptic();
     setOrders((prev) =>
-      prev.map((o) => (o.id === orderId ? { ...o, status: 'delivered', paymentMethod: paymentMethod || 'cash', failReason: '' } : o))
+      prev.map((o) =>
+        o.id === orderId
+          ? {
+              ...o,
+              status: 'delivered',
+              paymentMethod: paymentMethod || o.paymentMethod || 'cash',
+              tipAmount: tipAmount !== undefined ? Number(tipAmount) : (Number(o.tipAmount) || 0),
+              failReason: ''
+            }
+          : o
+      )
     );
 
     const remainingPending = orders.filter((o) => o.id !== orderId && o.status === 'pending').length;
@@ -644,8 +654,8 @@ export default function App() {
           accountNo: config.accountNo || '',
           accountName: config.accountName || config.shipperName || 'THIEN LONG'
         }}
-        onConfirmTransferDelivered={(orderId) => {
-          handleMarkDelivered(orderId, 'transfer');
+        onConfirmTransferDelivered={(orderId, paymentMethod = 'transfer', tipAmount = 0) => {
+          handleMarkDelivered(orderId, paymentMethod || 'transfer', tipAmount);
           setVietQROrder(null);
         }}
       />

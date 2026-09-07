@@ -45,6 +45,7 @@ export default function DailyLogbookView({
     let totalFailed = 0;
     let totalCOD = 0;
     let totalWageEarned = 0;
+    let totalTips = 0;
 
     filteredLogs.forEach((l) => {
       totalOrders += l.totalOrders || 0;
@@ -52,9 +53,10 @@ export default function DailyLogbookView({
       totalFailed += l.failedCount || 0;
       totalCOD += l.totalCOD || 0;
       totalWageEarned += l.totalWageEarned || 0;
+      totalTips += l.totalTip || 0;
     });
 
-    const totalIncome = baseSalary + totalWageEarned;
+    const totalIncome = baseSalary + totalWageEarned + totalTips;
 
     return {
       totalOrders,
@@ -62,6 +64,7 @@ export default function DailyLogbookView({
       totalFailed,
       totalCOD,
       totalWageEarned,
+      totalTips,
       totalIncome
     };
   }, [filteredLogs, baseSalary]);
